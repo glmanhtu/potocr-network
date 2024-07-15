@@ -36,52 +36,33 @@ class SceneTextDataModule(pl.LightningDataModule):
         root_dir: str,
         img_size: Sequence[int],
         max_label_length: int,
-        charset_train: str,
-        charset_test: str,
         batch_size: int,
         num_workers: int,
         augment: bool,
-        remove_whitespace: bool = True,
-        normalize_unicode: bool = True,
-        min_image_dim: int = 0,
         rotation: int = 0,
-        prepend_lang_token: bool = False,
         collate_fn: Optional[Callable] = None,
     ):
         super().__init__()
         self.root_dir = root_dir
         self.img_size = tuple(img_size)
         self.max_label_length = max_label_length
-        self.charset_train = charset_train
-        self.charset_test = charset_test
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.augment = augment
-        self.remove_whitespace = remove_whitespace
-        self.normalize_unicode = normalize_unicode
-        self.min_image_dim = min_image_dim
         self.rotation = rotation
         self.collate_fn = collate_fn
         self._train_dataset = None
         self._val_dataset = None
-        self.prepend_lang_token = prepend_lang_token
 
     @staticmethod
     def get_transform(img_size: tuple[int], augment: bool = False, rotation: int = 0):
-        transforms = [
-            HorizontalLongest(img_size[0] != img_size[1]),
-            HeightWidthLongestResize(max_height=img_size[0], max_width=img_size[1]),
-        ]
+        transforms = []
         if augment:
-            from .augment import rand_augment_transform
             transforms.extend([
                 T.RandomCrop(img_size, pad_if_needed=True),
-                rand_augment_transform()
             ])
         else:
             transforms.append(PadCenterCrop(img_size, pad_if_needed=True))
-        if rotation:
-            transforms.append(lambda img: img.rotate(rotation, expand=True))
         transforms.extend([
             T.ToTensor(),
             T.Normalize(0.5, 0.5),
@@ -95,12 +76,7 @@ class SceneTextDataModule(pl.LightningDataModule):
             root = PurePath(self.root_dir, 'train')
             self._train_dataset = build_tree_dataset(
                 root,
-                self.charset_train,
                 self.max_label_length,
-                self.min_image_dim,
-                self.remove_whitespace,
-                self.normalize_unicode,
-                prepend_lang_token=self.prepend_lang_token,
                 transform=transform,
             )
         return self._train_dataset
@@ -112,12 +88,7 @@ class SceneTextDataModule(pl.LightningDataModule):
             root = PurePath(self.root_dir, 'val')
             self._val_dataset = build_tree_dataset(
                 root,
-                self.charset_test,
                 self.max_label_length,
-                self.min_image_dim,
-                self.remove_whitespace,
-                self.normalize_unicode,
-                prepend_lang_token=self.prepend_lang_token,
                 transform=transform,
             )
         return self._val_dataset
@@ -149,12 +120,7 @@ class SceneTextDataModule(pl.LightningDataModule):
         datasets = {
             s: LmdbDataset(
                 str(root / s),
-                self.charset_test,
                 self.max_label_length,
-                self.min_image_dim,
-                self.remove_whitespace,
-                self.normalize_unicode,
-                prepend_lang_token=self.prepend_lang_token,
                 transform=transform,
             )
             for s in subset

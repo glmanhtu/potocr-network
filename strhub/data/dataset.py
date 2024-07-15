@@ -58,14 +58,9 @@ class LmdbDataset(Dataset):
     def __init__(
         self,
         root: str,
-        charset: str,
         max_label_len: int,
-        min_image_dim: int = 0,
-        remove_whitespace: bool = True,
-        normalize_unicode: bool = True,
         unlabelled: bool = False,
         transform: Optional[Callable] = None,
-        prepend_lang_token=False
     ):
         self._env = None
         self.root = root

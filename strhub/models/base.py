@@ -30,7 +30,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from timm.optim import create_optimizer_v2
 
-from strhub.data.utils import BaseTokenizer, CharsetAdapter, CTCTokenizer, Tokenizer
+from strhub.data.utils import BaseTokenizer, CharsetAdapter, CTCTokenizer, Tokenizer, BPEWrapper
 
 
 @dataclass
@@ -52,8 +52,7 @@ class BaseSystem(pl.LightningModule, ABC):
 
     def __init__(
         self,
-        tokenizer: BaseTokenizer,
-        charset_test: str,
+        tokenizer,
         batch_size: int,
         lr: float,
         warmup_pct: float,
@@ -61,7 +60,6 @@ class BaseSystem(pl.LightningModule, ABC):
     ) -> None:
         super().__init__()
         self.tokenizer = tokenizer
-        self.charset_adapter = CharsetAdapter(charset_test)
         self.batch_size = batch_size
         self.lr = lr
         self.warmup_pct = warmup_pct
@@ -135,13 +133,6 @@ class BaseSystem(pl.LightningModule, ABC):
         preds, probs = self.tokenizer.decode(probs)
         for pred, prob, gt in zip(preds, probs, labels):
             confidence += prob.prod().item()
-            if '>' in gt:
-                lang_gt = gt.split('>')[0] + '>'
-                gt = gt[len(lang_gt):]
-                lang_pred = pred.split('>')[0] + '>'
-                pred = pred[len(lang_pred):]
-                lang_correct += lang_pred == lang_gt
-            pred = self.charset_adapter(pred)
             # Follow ICDAR 2019 definition of N.E.D.
             ned += edit_distance(pred, gt) / max(len(pred), len(gt))
             if pred == gt:
@@ -195,10 +186,10 @@ class BaseSystem(pl.LightningModule, ABC):
 class CrossEntropySystem(BaseSystem):
 
     def __init__(
-        self, charset_train: str, charset_test: str, batch_size: int, lr: float, warmup_pct: float, weight_decay: float, lang_tokens=()
+        self, tokenizer: str, batch_size: int, lr: float, warmup_pct: float, weight_decay: float, lang_tokens=()
     ) -> None:
-        tokenizer = Tokenizer(charset_train, lang_tokens)
-        super().__init__(tokenizer, charset_test, batch_size, lr, warmup_pct, weight_decay)
+        tokenizer = BPEWrapper(tokenizer)
+        super().__init__(tokenizer, batch_size, lr, warmup_pct, weight_decay)
         self.bos_id = tokenizer.bos_id
         self.eos_id = tokenizer.eos_id
         self.pad_id = tokenizer.pad_id

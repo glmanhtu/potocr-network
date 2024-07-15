@@ -3,7 +3,7 @@ import os
 
 import lmdb
 from tokenizers.implementations import ByteLevelBPETokenizer
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 
 class LmdbLabelDataset(Dataset):
@@ -36,34 +36,58 @@ class LmdbLabelDataset(Dataset):
         return label
 
 
-def batch_iterator(dataloader):
-    for batch in dataloader:
-        yield batch
+def batch_iterator(dataset):
+    for i in range(0, len(dataset), batch_size):
+        yield [dataset[j] for j in range(i, min(i + batch_size, len(dataset)))]
+
+
+def evaluate_tokenizer(tokenizer: ByteLevelBPETokenizer, dataset):
+    total = 0
+    correct = 0
+    max_token_length = 0
+    for i in range(0, len(dataset)):
+        item = dataset[i]
+        encoded = tokenizer.encode(item)
+        max_token_length = max(max_token_length, len(encoded.ids))
+        decoded = tokenizer.decode(encoded.ids)
+        if item == decoded:
+            correct += 1
+        total += 1
+    return correct / total, max_token_length
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Train tokenizer script', add_help=False)
     parser.add_argument('--dataset-dir', required=True, type=str)
     parser.add_argument('--output-dir', required=True, type=str)
-    parser.add_argument('--vocab_size', required=True, type=int)
+    parser.add_argument('--vocab-size', type=int, default=5000)
     args = parser.parse_args()
 
     batch_size = 100
     save_dir = args.output_dir
 
-    dataset = LmdbLabelDataset(args.dataset_dir)
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4)
+    train_dataset = LmdbLabelDataset(os.path.join(args.dataset_dir, 'train'))
+    val_dataset = LmdbLabelDataset(os.path.join(args.dataset_dir, 'val'))
+    test_dataset = LmdbLabelDataset(os.path.join(args.dataset_dir, 'test'))
 
     tokenizer = ByteLevelBPETokenizer()
 
-    tokenizer.train_from_iterator(batch_iterator(dataloader), vocab_size=args.vocab_size, special_tokens=[
+    tokenizer.train_from_iterator(batch_iterator(train_dataset), vocab_size=args.vocab_size, special_tokens=[
         "<s>",
         "<pad>",
         "</s>",
         "<unk>",
     ])
+    tokenizer.add_tokens(['Veiled Suffix', 'Veiled Prefix'])
 
     os.makedirs(args.output_dir, exist_ok=True)
     tokenizer.save_model(args.output_dir)
 
     print(f'Tokenizer saved to {args.output_dir}')
+    accuracy, max_token_length = evaluate_tokenizer(tokenizer, train_dataset)
+    print(f'Train accuracy: {accuracy}, max token length: {max_token_length}')
+    accuracy, max_token_length = evaluate_tokenizer(tokenizer, val_dataset)
+    print(f'Validation accuracy: {accuracy}, max token length: {max_token_length}')
+    accuracy, max_token_length = evaluate_tokenizer(tokenizer, test_dataset)
+    print(f'Test accuracy: {accuracy}, max token length: {max_token_length}')
+

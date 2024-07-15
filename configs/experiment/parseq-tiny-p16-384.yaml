@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - override /model: parseq
+
+model:
+  name: parseq-tiny-p16-384
+  img_size: [ 384, 384 ]  # [ height, width ]
+  patch_size: [ 16, 16 ]  # [ height, width ]
+  embed_dim: 192
+  enc_num_heads: 3
+  dec_num_heads: 6

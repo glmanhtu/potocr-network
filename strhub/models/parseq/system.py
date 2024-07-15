@@ -34,8 +34,7 @@ class PARSeq(CrossEntropySystem):
 
     def __init__(
         self,
-        charset_train: str,
-        charset_test: str,
+        tokenizer: str,
         max_label_length: int,
         batch_size: int,
         lr: float,
@@ -59,7 +58,7 @@ class PARSeq(CrossEntropySystem):
         lang_tokens: Sequence[str],
         **kwargs: Any,
     ) -> None:
-        super().__init__(charset_train, charset_test, batch_size, lr, warmup_pct, weight_decay, tuple(lang_tokens))
+        super().__init__(tokenizer, batch_size, lr, warmup_pct, weight_decay, tuple(lang_tokens))
         self.save_hyperparameters()
 
         self.model = Model(

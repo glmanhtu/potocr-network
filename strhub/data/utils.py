@@ -12,13 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 import re
 from abc import ABC, abstractmethod
 from itertools import groupby
 from typing import Optional
 
 import torch
+from tokenizers.implementations import ByteLevelBPETokenizer
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
 
@@ -98,6 +99,52 @@ class BaseTokenizer(ABC):
             if not raw:
                 probs, ids = self._filter(probs, ids)
             tokens = self._ids2tok(ids, not raw)
+            batch_tokens.append(tokens)
+            batch_probs.append(probs)
+        return batch_tokens, batch_probs
+
+
+class BPEWrapper:
+    def __init__(self, tokenizer) -> None:
+        if isinstance(tokenizer, str) and os.path.isdir(tokenizer):
+            vocab = os.path.join(tokenizer, 'vocab.json')
+            merges = os.path.join(tokenizer, 'merges.txt')
+            self.tokenizer = ByteLevelBPETokenizer.from_file(vocab, merges)
+        else:
+            raise ValueError('Invalid tokenizer path: ' + str(tokenizer))
+        self.eos_id = self.tokenizer.token_to_id('</s>')
+        self.bos_id = self.tokenizer.token_to_id('<s>')
+        self.pad_id = self.tokenizer.token_to_id('<pad>')
+
+    def __len__(self):
+        return self.tokenizer.get_vocab_size()
+
+    def encode(self, labels: list[str], device: Optional[torch.device] = None) -> Tensor:
+        batch = [
+            torch.as_tensor([self.bos_id] + self.tokenizer.encode(y).ids + [self.eos_id], dtype=torch.long, device=device)
+            for y in labels
+        ]
+        return pad_sequence(batch, batch_first=True, padding_value=self.pad_id)
+
+    def _filter(self, probs: Tensor, ids: Tensor) -> tuple[Tensor, list[int]]:
+        ids = ids.tolist()
+        try:
+            eos_idx = ids.index(self.eos_id)
+        except ValueError:
+            eos_idx = len(ids)  # Nothing to truncate.
+        # Truncate after EOS
+        ids = ids[:eos_idx]
+        probs = probs[: eos_idx + 1]  # but include prob. for EOS (if it exists)
+        return probs, ids
+
+    def decode(self, token_dists: Tensor, raw: bool = False) -> tuple[list[str], list[Tensor]]:
+        batch_tokens = []
+        batch_probs = []
+        for dist in token_dists:
+            probs, ids = dist.max(-1)  # greedy selection
+            if not raw:
+                probs, ids = self._filter(probs, ids)
+            tokens = self.tokenizer.decode(ids, skip_special_tokens=True)
             batch_tokens.append(tokens)
             batch_probs.append(probs)
         return batch_tokens, batch_probs

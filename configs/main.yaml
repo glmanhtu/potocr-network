@@ -1,16 +1,12 @@
 defaults:
   - _self_
   - model: parseq
-  - charset: indic_10
 
 model:
   _convert_: all
-  img_size: [ 32, 128 ]  # [ height, width ]
-  max_label_length: 35
-  # The ordering in charset_train matters. It determines the token IDs assigned to each character.
-  charset_train: ???
-  # For charset_test, ordering doesn't matter.
-  charset_test: "0123456789abcdefghijklmnopqrstuvwxyz"
+  img_size: [ 384, 384 ]  # [ height, width ]
+  max_label_length: 500
+  tokenizer: ???
   batch_size: 384
   weight_decay: 0.0
   lang_tokens: []
@@ -21,12 +17,7 @@ data:
   root_dir: ???
   batch_size: ${model.batch_size}
   img_size: ${model.img_size}
-  charset_train: ${model.charset_train}
-  charset_test: ${model.charset_test}
   max_label_length: ${model.max_label_length}
-  remove_whitespace: false
-  normalize_unicode: false
-  prepend_lang_token: false
   augment: true
   num_workers: 2
 
