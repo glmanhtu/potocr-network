@@ -186,7 +186,7 @@ class BaseSystem(pl.LightningModule, ABC):
 class CrossEntropySystem(BaseSystem):
 
     def __init__(
-        self, tokenizer: str, batch_size: int, lr: float, warmup_pct: float, weight_decay: float, lang_tokens=()
+        self, tokenizer: str, batch_size: int, lr: float, warmup_pct: float, weight_decay: float
     ) -> None:
         tokenizer = BPEWrapper(tokenizer)
         super().__init__(tokenizer, batch_size, lr, warmup_pct, weight_decay)

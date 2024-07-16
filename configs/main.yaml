@@ -5,11 +5,10 @@ defaults:
 model:
   _convert_: all
   img_size: [ 384, 384 ]  # [ height, width ]
-  max_label_length: 500
+  max_label_length: 350
   tokenizer: ???
   batch_size: 384
   weight_decay: 0.0
-  lang_tokens: []
   warmup_pct: 0.075  # equivalent to 1.5 epochs of warm up
 
 data:

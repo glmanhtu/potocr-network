@@ -55,10 +55,9 @@ class PARSeq(CrossEntropySystem):
         decode_ar: bool,
         refine_iters: int,
         dropout: float,
-        lang_tokens: Sequence[str],
         **kwargs: Any,
     ) -> None:
-        super().__init__(tokenizer, batch_size, lr, warmup_pct, weight_decay, tuple(lang_tokens))
+        super().__init__(tokenizer, batch_size, lr, warmup_pct, weight_decay)
         self.save_hyperparameters()
 
         self.model = Model(
@@ -83,7 +82,6 @@ class PARSeq(CrossEntropySystem):
         self.max_gen_perms = perm_num // 2 if perm_mirrored else perm_num
         self.perm_forward = perm_forward
         self.perm_mirrored = perm_mirrored
-        self.handle_lang_token = len(lang_tokens) > 0
 
     def forward(self, images: Tensor, max_length: Optional[int] = None) -> Tensor:
         return self.model.forward(self.tokenizer, images, max_length)
@@ -95,8 +93,6 @@ class PARSeq(CrossEntropySystem):
         """
         # We don't permute the position of BOS, we permute EOS separately
         max_num_chars = tgt.shape[1] - 2
-        if self.handle_lang_token:
-            max_num_chars -= 1
         # Special handling for 1-character sequences
         if max_num_chars == 1:
             return torch.arange(3, device=self._device).unsqueeze(0)
@@ -144,19 +140,12 @@ class PARSeq(CrossEntropySystem):
         # distribute it across the chosen number of permutations.
         # Add position indices of BOS and EOS
         bos_idx = perms.new_zeros((len(perms), 1))
-        if self.handle_lang_token:
-            lang_idx = perms.new_ones((len(perms), 1))
-            eos_idx = perms.new_full((len(perms), 1), max_num_chars + 2)
-            perms = torch.cat([bos_idx, lang_idx, perms + 2, eos_idx], dim=1)
-        else:
-            eos_idx = perms.new_full((len(perms), 1), max_num_chars + 1)
-            perms = torch.cat([bos_idx, perms + 1, eos_idx], dim=1)
+        eos_idx = perms.new_full((len(perms), 1), max_num_chars + 1)
+        perms = torch.cat([bos_idx, perms + 1, eos_idx], dim=1)
         # Special handling for the reverse direction. This does two things:
         # 1. Reverse context for the characters
         # 2. Null context for [EOS] (required for learning to predict [EOS] in NAR mode)
-        if len(perms) > 1 and self.handle_lang_token:
-            perms[1, 2:] = max_num_chars + 2 - torch.arange(max_num_chars + 1, device=self._device)
-        if len(perms) > 1 and not self.handle_lang_token:
+        if len(perms) > 1:
             perms[1, 1:] = max_num_chars + 1 - torch.arange(max_num_chars + 1, device=self._device)
         return perms
 
