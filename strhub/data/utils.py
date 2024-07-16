@@ -117,7 +117,7 @@ class BPEWrapper:
         self.pad_id = self.tokenizer.token_to_id('<pad>')
 
     def __len__(self):
-        return self.tokenizer.get_vocab_size() + 1
+        return self.tokenizer.get_vocab_size() + 2
 
     def encode(self, labels: list[str], device: Optional[torch.device] = None) -> Tensor:
         batch = [
