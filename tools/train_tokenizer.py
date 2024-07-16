@@ -73,9 +73,9 @@ if __name__ == '__main__':
     tokenizer = ByteLevelBPETokenizer()
 
     tokenizer.train_from_iterator(batch_iterator(train_dataset), vocab_size=args.vocab_size, special_tokens=[
+        "</s>",
         "<s>",
         "<pad>",
-        "</s>",
         "<unk>",
     ])
     tokenizer.add_tokens(['Veiled Suffix', 'Veiled Prefix'])
