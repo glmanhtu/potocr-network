@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 
 import lmdb
 from tokenizers.implementations import ByteLevelBPETokenizer
@@ -36,10 +37,22 @@ class LmdbLabelDataset(Dataset):
         return label
 
 
-def batch_iterator(dataset):
+def batch_iterator(dataset, special_chars):
     for i in range(0, len(dataset), batch_size):
-        yield [dataset[j] for j in range(i, min(i + batch_size, len(dataset)))]
+        result = []
+        for j in range(i, min(i + batch_size, len(dataset))):
+            label = dataset[j]
+            # remove all numbers from label
+            label = re.sub(r'\d+', '', label)
+            # replace - with space
+            label = label.replace('-', ' ')
+            label = label.replace('/', ' ')
+            # remove special characters
+            for special_char in special_chars:
+                label = label.replace(special_char, '')
 
+            result.append(label)
+        yield result
 
 def evaluate_tokenizer(tokenizer: ByteLevelBPETokenizer, dataset):
     total = 0
@@ -71,14 +84,13 @@ if __name__ == '__main__':
     test_dataset = LmdbLabelDataset(os.path.join(args.dataset_dir, 'test'))
 
     tokenizer = ByteLevelBPETokenizer()
+    special_chars = ['(', ')', '"', ':', '?', '!', ';', '/', '-', ',', '.']
 
-    tokenizer.train_from_iterator(batch_iterator(train_dataset), vocab_size=args.vocab_size, special_tokens=[
-        "</s>",
-        "<s>",
-        "<pad>",
-        "<unk>",
-    ])
+    tokenizer.train_from_iterator(batch_iterator(train_dataset, special_chars), vocab_size=args.vocab_size,
+                                  special_tokens=["</s>", "<s>", "<pad>", "<unk>"])
     tokenizer.add_tokens(['Veiled Suffix', 'Veiled Prefix'])
+    tokenizer.add_tokens([str(i) for i in range(10)])
+    tokenizer.add_tokens(special_chars)
 
     os.makedirs(args.output_dir, exist_ok=True)
     tokenizer.save_model(args.output_dir)
