@@ -47,6 +47,8 @@ def batch_iterator(dataset, special_chars):
             # replace - with space
             label = label.replace('-', ' ')
             label = label.replace('/', ' ')
+            # replace regex \s*\n\s* with  \n
+            label = re.sub(r'\s*\n\s*', ' \n ', label)
             # remove special characters
             for special_char in special_chars:
                 label = label.replace(special_char, '')
@@ -84,11 +86,10 @@ if __name__ == '__main__':
     test_dataset = LmdbLabelDataset(os.path.join(args.dataset_dir, 'test'))
 
     tokenizer = ByteLevelBPETokenizer()
-    special_chars = ['(', ')', '"', ':', '?', '!', ';', '/', '-', ',', '.']
+    special_chars = ['(', ')', '"', ':', '?', '!', ';', '/', '-', ',', '.', '%', '+']
 
     tokenizer.train_from_iterator(batch_iterator(train_dataset, special_chars), vocab_size=args.vocab_size,
                                   special_tokens=["</s>", "<s>", "<pad>", "<unk>"])
-    tokenizer.add_tokens(['Veiled Suffix', 'Veiled Prefix'])
     tokenizer.add_tokens([str(i) for i in range(10)])
     tokenizer.add_tokens(special_chars)
 
