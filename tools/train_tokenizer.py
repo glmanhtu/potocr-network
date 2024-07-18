@@ -47,8 +47,6 @@ def batch_iterator(dataset, special_chars):
             # replace - with space
             label = label.replace('-', ' ')
             label = label.replace('/', ' ')
-            # replace regex \s*\n\s* with  \n
-            label = re.sub(r'\s*\n\s*', ' \n ', label)
             # remove special characters
             for special_char in special_chars:
                 label = label.replace(special_char, '')
