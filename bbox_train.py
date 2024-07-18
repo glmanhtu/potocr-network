@@ -7,7 +7,7 @@ parser = argparse.ArgumentParser('Train bbox script', add_help=False)
 parser.add_argument('--config-file', required=True, type=str)
 parser.add_argument('--project', required=True, type=str)
 parser.add_argument('--device', type=str, default='0')
-parser.add_argument('--batch-size', type=int, default=128)
+parser.add_argument('--batch-size', type=float, default=0.8)    # 80% of GPU memory
 parser.add_argument('--lr', type=float, default=7e-4)
 parser.add_argument('--epochs', type=int, default=100)
 args = parser.parse_args()
@@ -18,7 +18,7 @@ model = YOLO("yolov8n.pt")
 # Train the model using the 'coco8.yaml' dataset for 3 epochs
 results = model.train(data=args.config_file, epochs=args.epochs, imgsz=(360, 640), rect=True,
                       project=args.project, device=args.device, optimizer='AdamW', batch=args.batch_size,
-                      lr0=args.lr)
+                      lr0=args.lr, freeze=0)
 
 # Evaluate the model's performance on the validation set
 metrics = model.val(imgz=(360, 640), rect=True, iou=0.1, max_det=10, device=args.device,
