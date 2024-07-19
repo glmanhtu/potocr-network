@@ -7,7 +7,7 @@ parser = argparse.ArgumentParser('Train bbox script', add_help=False)
 parser.add_argument('--config-file', required=True, type=str)
 parser.add_argument('--project', required=True, type=str)
 parser.add_argument('--device', type=str, default='0')
-parser.add_argument('--batch-size', type=float, default=0.8)    # 80% of GPU memory
+parser.add_argument('--batch-size', type=int, default=400)    # 80% of GPU memory
 parser.add_argument('--lr', type=float, default=7e-4)
 parser.add_argument('--epochs', type=int, default=100)
 args = parser.parse_args()
