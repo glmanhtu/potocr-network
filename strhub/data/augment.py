@@ -142,6 +142,7 @@ class RandomDistortion(torch.nn.Module):
         self.img_size = img_size
         self.fill = fill
         self.percentage = percentage
+        self.resizer = torchvision.transforms.Resize(img_size)
 
     def forward(self, img):
         w, h = img.size
@@ -149,7 +150,8 @@ class RandomDistortion(torch.nn.Module):
         h = int(h * np.random.uniform(1.0 - self.percentage, 1.0 + self.percentage))
         img = img.resize((w, h), Image.BILINEAR)
         cropper = torchvision.transforms.RandomCrop(max(w, h), pad_if_needed=True, fill=self.fill)
-        return cropper(img)
+        img = cropper(img)
+        return self.resizer(img)
 
 
 class GaussianBlur(object):
