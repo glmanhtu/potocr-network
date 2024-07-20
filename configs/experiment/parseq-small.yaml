@@ -1,0 +1,9 @@
+# @package _global_
+defaults:
+  - override /model: parseq
+
+model:
+  name: parseq-tiny
+  embed_dim: 256
+  enc_num_heads: 4
+  dec_num_heads: 8
