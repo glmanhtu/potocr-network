@@ -12,12 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import random
 from functools import partial
 
 import imgaug.augmenters as iaa
 import numpy as np
 import torch
+import torchvision.transforms
 from PIL import Image, ImageFilter
 
 from timm.data import auto_augment
@@ -134,6 +135,42 @@ class HorizontalLongest(torch.nn.Module):
             img = img.transpose(Image.ROTATE_270)
         return img
 
+
+class RandomDistortion(torch.nn.Module):
+    def __init__(self, img_size, fill=0, percentage=0.1):
+        super().__init__()
+        self.img_size = img_size
+        self.fill = fill
+        self.percentage = percentage
+
+    def forward(self, img):
+        w, h = img.size
+        w = int(w * np.random.uniform(1.0 - self.percentage, 1.0 + self.percentage))
+        h = int(h * np.random.uniform(1.0 - self.percentage, 1.0 + self.percentage))
+        img = img.resize((w, h), Image.BILINEAR)
+        cropper = torchvision.transforms.RandomCrop(max(w, h), pad_if_needed=True, fill=self.fill)
+        return cropper(img)
+
+
+class GaussianBlur(object):
+    """
+    Apply Gaussian Blur to the PIL image.
+    """
+    def __init__(self, p=0.5, radius_min=0.1, radius_max=2.):
+        self.prob = p
+        self.radius_min = radius_min
+        self.radius_max = radius_max
+
+    def __call__(self, img):
+        do_it = random.random() <= self.prob
+        if not do_it:
+            return img
+
+        return img.filter(
+            ImageFilter.GaussianBlur(
+                radius=random.uniform(self.radius_min, self.radius_max)
+            )
+        )
 
 class HeightWidthLongestResize(torch.nn.Module):
     def __init__(self, max_height, max_width, interpolation=Image.BICUBIC):

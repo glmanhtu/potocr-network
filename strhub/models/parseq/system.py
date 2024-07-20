@@ -83,7 +83,7 @@ class PARSeq(CrossEntropySystem):
         self.perm_forward = perm_forward
         self.perm_mirrored = perm_mirrored
 
-    def forward(self, images: Tensor, max_length: Optional[int] = None) -> Tensor:
+    def forward(self, images: Tensor, max_length = None) -> Tensor:
         return self.model.forward(self.tokenizer, images, max_length)
 
     def gen_tgt_perms(self, tgt):

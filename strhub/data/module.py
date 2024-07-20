@@ -21,7 +21,7 @@ from torchvision import transforms as T
 
 import pytorch_lightning as pl
 
-from .augment import HorizontalLongest, HeightWidthLongestResize, PadCenterCrop
+from .augment import HorizontalLongest, HeightWidthLongestResize, PadCenterCrop, RandomDistortion, GaussianBlur
 from .dataset import LmdbDataset, build_tree_dataset
 
 
@@ -59,10 +59,12 @@ class SceneTextDataModule(pl.LightningDataModule):
         transforms = []
         if augment:
             transforms.extend([
-                T.RandomCrop(img_size, pad_if_needed=True),
+                T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+                RandomDistortion(img_size, fill=144, percentage=0.1),
+                GaussianBlur(radius_max=0.7)
             ])
         else:
-            transforms.append(PadCenterCrop(img_size, pad_if_needed=True))
+            transforms.append(PadCenterCrop(img_size, pad_if_needed=True, fill=144))
         transforms.extend([
             T.ToTensor(),
             T.Normalize(0.5, 0.5),
