@@ -105,7 +105,7 @@ class BaseTokenizer(ABC):
 
 
 class BPEWrapper:
-    def __init__(self, tokenizer) -> None:
+    def __init__(self, tokenizer, max_label_length) -> None:
         if isinstance(tokenizer, str) and os.path.isdir(tokenizer):
             vocab = os.path.join(tokenizer, 'vocab.json')
             merges = os.path.join(tokenizer, 'merges.txt')
@@ -115,13 +115,15 @@ class BPEWrapper:
         self.eos_id = self.tokenizer.token_to_id('</s>')
         self.bos_id = self.tokenizer.token_to_id('<s>')
         self.pad_id = self.tokenizer.token_to_id('<pad>')
+        self.max_label_length = max_label_length
 
     def __len__(self):
         return self.tokenizer.get_vocab_size() + 2
 
     def encode(self, labels: list[str], device: Optional[torch.device] = None) -> Tensor:
         batch = [
-            torch.as_tensor([self.bos_id] + self.tokenizer.encode(y).ids + [self.eos_id], dtype=torch.long, device=device)
+            torch.as_tensor([self.bos_id] + self.tokenizer.encode(y).ids[:self.max_label_length - 2] + [self.eos_id],
+                            dtype=torch.long, device=device)
             for y in labels
         ]
         return pad_sequence(batch, batch_first=True, padding_value=self.pad_id)

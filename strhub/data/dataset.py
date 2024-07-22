@@ -19,7 +19,9 @@ import unicodedata
 from pathlib import Path, PurePath
 from typing import Callable, Optional, Union
 
+import cv2
 import lmdb
+import numpy as np
 from PIL import Image
 
 from torch.utils.data import ConcatDataset, Dataset
@@ -101,9 +103,9 @@ class LmdbDataset(Dataset):
                 label = txn.get(label_key).decode()
             else:
                 label = index
-        buf = io.BytesIO(imgbuf)
-        img = Image.open(buf).convert('RGB')
-
+        jpg_as_np = np.frombuffer(imgbuf, dtype=np.uint8)
+        image_np = cv2.imdecode(jpg_as_np, cv2.IMREAD_COLOR)
+        img = Image.fromarray(image_np)
         if self.transform is not None:
             img = self.transform(img)
 

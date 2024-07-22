@@ -57,7 +57,7 @@ class PARSeq(CrossEntropySystem):
         dropout: float,
         **kwargs: Any,
     ) -> None:
-        super().__init__(tokenizer, batch_size, lr, warmup_pct, weight_decay)
+        super().__init__(tokenizer, batch_size, lr, warmup_pct, weight_decay, max_label_length)
         self.save_hyperparameters()
 
         self.model = Model(
