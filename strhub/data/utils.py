@@ -122,7 +122,7 @@ class BPEWrapper:
 
     def encode(self, labels: list[str], device: Optional[torch.device] = None) -> Tensor:
         batch = [
-            torch.as_tensor([self.bos_id] + self.tokenizer.encode(y).ids[:self.max_label_length - 2] + [self.eos_id],
+            torch.tensor([self.bos_id] + self.tokenizer.encode(y).ids[:self.max_label_length - 2] + [self.eos_id],
                             dtype=torch.long, device=device)
             for y in labels
         ]
