@@ -1,6 +1,7 @@
 import argparse
 import os
 import re
+import statistics
 
 import lmdb
 from tokenizers.implementations import ByteLevelBPETokenizer
@@ -57,15 +58,25 @@ def batch_iterator(dataset, special_chars):
 def evaluate_tokenizer(tokenizer: ByteLevelBPETokenizer, dataset):
     total = 0
     correct = 0
-    max_token_length = 0
+    token_lengths = []
     for i in range(0, len(dataset)):
         item = dataset[i]
         encoded = tokenizer.encode(item)
-        max_token_length = max(max_token_length, len(encoded.ids))
+        token_lengths.append(len(encoded.ids))
         decoded = tokenizer.decode(encoded.ids)
         if item == decoded:
             correct += 1
         total += 1
+
+    t = args.threshold
+    print("Token length statistics:")
+    print(f"Max token length: {max(token_lengths)}")
+    print(f"Min token length: {min(token_lengths)}")
+    print(f"Mean token length: {sum(token_lengths) / len(token_lengths)}")
+    print(f"Standard deviation: {statistics.stdev(token_lengths)}")
+    print(f"Median token length: {statistics.median(token_lengths)}")
+    print(f"Number of tokens with length > {t}: {len([l for l in token_lengths if l > t])} / {len(token_lengths)}")
+    max_token_length = max(token_lengths)
     return correct / total, max_token_length
 
 
@@ -74,6 +85,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset-dir', required=True, type=str)
     parser.add_argument('--output-dir', required=True, type=str)
     parser.add_argument('--vocab-size', type=int, default=5000)
+    parser.add_argument('--threshold', type=int, default=200)
     args = parser.parse_args()
 
     batch_size = 100
@@ -96,9 +108,9 @@ if __name__ == '__main__':
 
     print(f'Tokenizer saved to {args.output_dir}')
     accuracy, max_token_length = evaluate_tokenizer(tokenizer, train_dataset)
-    print(f'Train accuracy: {accuracy}, max token length: {max_token_length}')
+    print(f'Train accuracy: {accuracy}, max token length: {max_token_length}\n')
     accuracy, max_token_length = evaluate_tokenizer(tokenizer, val_dataset)
-    print(f'Validation accuracy: {accuracy}, max token length: {max_token_length}')
+    print(f'Validation accuracy: {accuracy}, max token length: {max_token_length}\n')
     accuracy, max_token_length = evaluate_tokenizer(tokenizer, test_dataset)
-    print(f'Test accuracy: {accuracy}, max token length: {max_token_length}')
+    print(f'Test accuracy: {accuracy}, max token length: {max_token_length}\n')
 
