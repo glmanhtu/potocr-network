@@ -18,6 +18,8 @@ from abc import ABC, abstractmethod
 from itertools import groupby
 from typing import Optional
 
+import cv2
+import numpy as np
 import torch
 from tokenizers.implementations import ByteLevelBPETokenizer
 from torch import Tensor
@@ -201,3 +203,18 @@ class CTCTokenizer(BaseTokenizer):
         ids = [x for x in ids if x != self.blank_id]  # Remove BLANKs
         # `probs` is just pass-through since all positions are considered part of the path
         return probs, ids
+
+
+def resized_center_pad(img, target_shape, fill=144):
+    h, w = img.shape[:2]
+    target_h, target_w = target_shape
+    ratio = min(target_h / h, target_w / w)
+    new_h, new_w = int(h * ratio), int(w * ratio)
+    img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+    pad_h = target_h - new_h
+    pad_w = target_w - new_w
+    pad_top = pad_h // 2
+    pad_bottom = pad_h - pad_top
+    pad_left = pad_w // 2
+    pad_right = pad_w - pad_left
+    return np.pad(img, ((pad_top, pad_bottom), (pad_left, pad_right), (0, 0)), mode='constant', constant_values=fill)

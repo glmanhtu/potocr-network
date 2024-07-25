@@ -117,7 +117,7 @@ class PARSeq(nn.Module):
         tgt_mask = query_mask = torch.triu(torch.ones((num_steps, num_steps), dtype=torch.bool, device=self._device), 1)
 
         if self.decode_ar:
-            tgt_in = torch.full((bs, num_steps), pad_id, dtype=torch.long, device=self._device)
+            tgt_in = torch.full((bs, num_steps + 1), pad_id, dtype=torch.long, device=self._device)
             tgt_in[:, 0] = bos_id
 
             logits = []
@@ -137,12 +137,11 @@ class PARSeq(nn.Module):
                 # the next token probability is in the output's ith token position
                 p_i = self.head(tgt_out)
                 logits.append(p_i)
-                if j < num_steps:
-                    # greedy decode. add the next token index to the target input
-                    tgt_in[:, j] = p_i.squeeze().argmax(-1)
-                    # Efficient batch decoding: If all output words have at least one EOS token, end decoding.
-                    if testing and (tgt_in == eos_id).any(dim=-1).all():
-                        break
+                # greedy decode. add the next token index to the target input
+                tgt_in[:, j] = p_i.squeeze().argmax(-1)
+                # Efficient batch decoding: If all output words have at least one EOS token, end decoding.
+                if testing and (tgt_in == eos_id).any(dim=-1).all():
+                    break
 
             logits = torch.cat(logits, dim=1)
         else:
